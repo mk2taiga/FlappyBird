@@ -19,11 +19,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let groundCategory: UInt32 = 1 << 1     // 0...00010
     let wallCategory: UInt32 = 1 << 2       // 0...00100
     let scoreCategory: UInt32 = 1 << 3      // 0...01000 上の壁としたの壁の間に見えない物体を設定する それでスコアを判断する
+    let itemScoreCategory: UInt32 = 1 << 4  //itemcategory 追加--------------------------------------------------------
+    
 //    スコア
     var score = 0
     var scoreLabelNode:SKLabelNode!
     var bestScoreLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
+    
+//    item　スコア追加-----------------------------------------------------------------
+    var itemScore = 0
+    var itemScoreLabelNode:SKLabelNode!
+    let itemUserDefaults:UserDefaults = UserDefaults.standard
     
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
@@ -49,6 +56,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupWall()
         setupBird()
         setupScoreLabel()
+        setupItemScoreLabel() //アイテムスコアのメソッド追加--------------------------------------------------------------
         
     }
     
@@ -265,14 +273,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // スコア用の物体と衝突した
             print("ScoreUp")
             score += 1
-            scoreLabelNode.text = "Score:\(score)"    // ←追加
+            scoreLabelNode.text = "Score:\(score)"
             
             
             // ベストスコア更新か確認する
             var bestScore = userDefaults.integer(forKey: "BEST")
             if score > bestScore {
                 bestScore = score
-                bestScoreLabelNode.text = "Best Score:\(bestScore)"    // ←追加
+                bestScoreLabelNode.text = "Best Score:\(bestScore)"
                 userDefaults.set(bestScore, forKey: "BEST")
                 userDefaults.synchronize()
             }
@@ -327,6 +335,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let bestScore = userDefaults.integer(forKey: "BEST")
         bestScoreLabelNode.text = "Best Score:\(bestScore)"
         self.addChild(bestScoreLabelNode)
+        
+    }
+    
+//    アイテムスコアのメソッド add---------------------------------------------------------------------------
+    func setupItemScoreLabel() {
+        itemScore = 0
+        itemScoreLabelNode = SKLabelNode()
+        itemScoreLabelNode.fontColor = UIColor.black
+        itemScoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 90)
+        itemScoreLabelNode.zPosition = 100
+        itemScoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        itemScoreLabelNode.text = "Item Score:\(itemScore)"
+        self.addChild(itemScoreLabelNode)
         
     }
     
