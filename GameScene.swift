@@ -13,13 +13,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var scrollNode:SKNode!
     var wallNode:SKNode!
     var bird:SKSpriteNode!
+    var itemNode:SKNode! //追加
     
 //    判定カテゴリー
     let birdCategory: UInt32 = 1 << 0       // 0...00001
     let groundCategory: UInt32 = 1 << 1     // 0...00010
     let wallCategory: UInt32 = 1 << 2       // 0...00100
     let scoreCategory: UInt32 = 1 << 3      // 0...01000 上の壁としたの壁の間に見えない物体を設定する それでスコアを判断する
-    let itemScoreCategory: UInt32 = 1 << 4  //itemcategory 追加--------------------------------------------------------
+    let itemCategory: UInt32 = 1 << 4       //itemcategory 追加
     
 //    スコア
     var score = 0
@@ -27,10 +28,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var bestScoreLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
     
-//    item　スコア追加-----------------------------------------------------------------
+//    item　スコア追加
     var itemScore = 0
     var itemScoreLabelNode:SKLabelNode!
-    let itemUserDefaults:UserDefaults = UserDefaults.standard
     
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
@@ -49,6 +49,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 //        壁用のノード
         wallNode = SKNode()
         scrollNode.addChild(wallNode)
+        //Nodeを追加
+        itemNode = SKNode()
+        scrollNode.addChild(itemNode)
         
         // 各種スプライトを生成する処理をメソッドに分割
         setupGround()
@@ -56,10 +59,56 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupWall()
         setupBird()
         setupScoreLabel()
-        setupItemScoreLabel() //アイテムスコアのメソッド追加--------------------------------------------------------------
+        setupItemScoreLabel()               //アイテムスコアのメソッド追加
+        setupItem()                         //アイテムメソッド追加
         
     }
     
+    //アイテムのメソッドを追加
+    func setupItem() {
+        //画像の読み込み
+        let itemTexture = SKTexture(imageNamed: "item")
+        itemTexture.filteringMode = SKTextureFilteringMode.linear
+        //アイテムの移動する距離
+        let movingDistance = CGFloat(self.frame.size.width + itemTexture.size().width)
+        //画面外まで移動するアクションを作成
+        let moveItem = SKAction.moveBy(x: -movingDistance, y: 0, duration: 4.0)
+        //自身を取り除くアクションを作成
+        let removeItem = SKAction.removeFromParent()
+        //二つのアクションを順に実行するアクションを作成
+        let itemAnimation = SKAction.sequence([moveItem, removeItem])
+        
+        //アイテムを作成するアクションを作成
+        let createItemAnimation = SKAction.run ({
+            // item関連のノードを乗せるノードを作成
+            let item = SKNode()
+            item.position = CGPoint(x: self.frame.size.width + itemTexture.size().width / 2, y: 0.0)
+            item.zPosition = -75.0
+            //itemTexture
+            let app = SKSpriteNode(texture: itemTexture)
+            //yの位置を指定
+            let random = arc4random_uniform( UInt32(self.frame.size.height) )
+            app.position = CGPoint(x: 0.0, y: (Double(random)))
+            //            物理演算を設定
+            app.physicsBody = SKPhysicsBody(rectangleOf: itemTexture.size())
+            app.physicsBody?.categoryBitMask = self.itemCategory
+            app.physicsBody?.contactTestBitMask = self.birdCategory
+            app.physicsBody?.isDynamic = false
+            
+            item.addChild(app)
+            item.run(itemAnimation)
+            self.itemNode.addChild(item)
+        })
+        
+        // 次のアイテム作成までの待ち時間のアクションを作成
+        let waitAnimation = SKAction.wait(forDuration: 3)
+        
+        // アイテムを作成->待ち時間->アイテムを作成を無限に繰り替えるアクションを作成
+        let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createItemAnimation, waitAnimation]))
+        
+        itemNode.run(repeatForeverAnimation)
+        
+    }
     
     func setupGround() {
         // 地面の画像を読み込む
@@ -90,8 +139,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             sprite.run(repeatScrollGround)
 //            物理演算を設定
             sprite.physicsBody = SKPhysicsBody(rectangleOf: groundTexture.size())
-//            衝突の時に動かないようにする
-            sprite.physicsBody?.isDynamic = false
 //            衝突カテゴリー
             sprite.physicsBody?.categoryBitMask = groundCategory
 //            衝突した時に動かないようにする
@@ -284,7 +331,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 userDefaults.set(bestScore, forKey: "BEST")
                 userDefaults.synchronize()
             }
-        } else {
+        }else if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory || (contact.bodyB.categoryBitMask & itemCategory) == itemCategory {
+           //鳥とアイテムがぶつかった時のスコア計算
+            print("ItemGet")
+            itemScore += 1
+            itemScoreLabelNode.text = "Item Score:\(itemScore)"
+            
+            // 再生データの作成.
+            let mySoundAction: SKAction = SKAction.playSoundFileNamed("get.mp3", waitForCompletion: true)
+            // 再生アクション.
+            self.run(mySoundAction);
+            
+        }else {
             // 壁か地面と衝突した
             print("GameOver")
             
@@ -304,13 +362,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func restart() {
         score = 0
         scoreLabelNode.text = String("Score:\(score)")  //なぜStringと書かれているのか？
+        //リスタート時のアイテムスコア
+        itemScore = 0
+        itemScoreLabelNode.text = String("Item Score:\(itemScore)")
+        
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
         bird.zRotation = 0.0
         
         wallNode.removeAllChildren()
-        
+        itemNode.removeAllChildren()
         bird.speed = 1
         scrollNode.speed = 1
     }
@@ -335,10 +397,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let bestScore = userDefaults.integer(forKey: "BEST")
         bestScoreLabelNode.text = "Best Score:\(bestScore)"
         self.addChild(bestScoreLabelNode)
-        
     }
     
-//    アイテムスコアのメソッド add---------------------------------------------------------------------------
+//    アイテムスコアのメソッド add
     func setupItemScoreLabel() {
         itemScore = 0
         itemScoreLabelNode = SKLabelNode()
@@ -348,8 +409,5 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         itemScoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
         itemScoreLabelNode.text = "Item Score:\(itemScore)"
         self.addChild(itemScoreLabelNode)
-        
     }
-    
-    
 }
