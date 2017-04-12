@@ -101,7 +101,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         })
         
         // 次のアイテム作成までの待ち時間のアクションを作成
-        let waitAnimation = SKAction.wait(forDuration: 3)
+        let waitAnimation = SKAction.wait(forDuration: 2.5)
         
         // アイテムを作成->待ち時間->アイテムを作成を無限に繰り替えるアクションを作成
         let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createItemAnimation, waitAnimation]))
@@ -337,6 +337,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             itemScore += 1
             itemScoreLabelNode.text = "Item Score:\(itemScore)"
             
+            if (contact.bodyA.categoryBitMask) == itemCategory {
+                contact.bodyA.node?.removeFromParent()
+            }else if (contact.bodyB.categoryBitMask) == itemCategory {
+                contact.bodyB.node?.removeFromParent()
+            }
             // 再生データの作成.
             let mySoundAction: SKAction = SKAction.playSoundFileNamed("get.mp3", waitForCompletion: true)
             // 再生アクション.

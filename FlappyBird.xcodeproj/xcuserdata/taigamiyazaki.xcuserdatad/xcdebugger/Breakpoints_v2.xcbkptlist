@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "GameScene.swift"
-            timestampString = "513680310.096837"
+            timestampString = "513681570.406359"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "412"
-            endingLineNumber = "412"
+            startingLineNumber = "417"
+            endingLineNumber = "417"
             landmarkName = "setupItemScoreLabel()"
             landmarkType = "7">
          </BreakpointContent>
